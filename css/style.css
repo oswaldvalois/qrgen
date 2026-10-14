@@ -389,3 +389,6 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
   .hero-features{flex-direction:column}
   .feature{width:100%}
 }
+
+/* ---- styling QR extras ---- */
+.logo-pick { align-self: center; white-space: nowrap; }

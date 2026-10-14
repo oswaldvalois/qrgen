@@ -171,7 +171,76 @@
   function err(m) { $('#genHint').textContent = m; $('#genHint').className = 'hint err'; return null; }
 
   /* ---------- QR render ---------- */
-  function makeQRCanvas(data, size, fg, bg, ec) {
+  // logo tengah: state global (data URL dari file pilihan user)
+  var logoDataUrl = null;
+  var logoImgEl = null;
+
+  function roundRectPath(ctx, x, y, w, h, rad) {
+    var rr = Math.min(rad, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  function hexToRgb(hex) {
+    var m = /^#([0-9a-f]{6})$/i.exec(String(hex || ''));
+    if (!m) return null;
+    return [parseInt(m[1].slice(0, 2), 16), parseInt(m[1].slice(2, 4), 16), parseInt(m[1].slice(4, 6), 16)];
+  }
+
+  function rgbToHex(rgb) {
+    return '#' + rgb.map(function (v) {
+      return ('0' + Math.max(0, Math.min(255, Math.round(v))).toString(16)).slice(-2);
+    }).join('');
+  }
+
+  // warna ujung gradien: geser hue +45 derajat (navy -> teal, merah -> ungu, dst)
+  // lightness dijaga <= 0.40 supaya kontras thd latar tetap aman utk scanner
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b), h, s;
+    var l = (max + min) / 2;
+    if (max === min) return [0, 0, l];
+    var d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+    else if (max === g) h = ((b - r) / d + 2) / 6;
+    else h = ((r - g) / d + 4) / 6;
+    return [h, s, l];
+  }
+  function hue2rgb(p, q, t) {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  }
+  function hslToRgb(h, s, l) {
+    if (s === 0) { var v = Math.round(l * 255); return [v, v, v]; }
+    var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    var p = 2 * l - q;
+    return [Math.round(hue2rgb(p, q, h + 1 / 3) * 255),
+            Math.round(hue2rgb(p, q, h) * 255),
+            Math.round(hue2rgb(p, q, h - 1 / 3) * 255)];
+  }
+  function gradientEnd(fg, bg) {
+    void bg;
+    var a = hexToRgb(fg);
+    if (!a) return fg;
+    var hsl = rgbToHsl(a[0], a[1], a[2]);
+    var h = (hsl[0] + 45 / 360) % 1;
+    // lightness: floor 0.30 (warna gelap dinaikkan — hue shift di zona gelap tak terlihat)
+    // ceiling 0.42 (warna terang diturunkan — jaga kontras utk scanner)
+    var l = Math.min(0.42, Math.max(hsl[2], 0.30));
+    return rgbToHex(hslToRgb(h, hsl[1], l));
+  }
+
+  function makeQRCanvas(data, size, fg, bg, ec, style, gradient, logoImg) {
     var qr = qrcode(0, ec);
     qr.addData(data);
     qr.make();
@@ -186,11 +255,70 @@
     var ctx = cv.getContext('2d');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, px, px);
-    ctx.fillStyle = fg;
-    for (var r = 0; r < count; r++) {
-      for (var c = 0; c < count; c++) {
-        if (qr.isDark(r, c)) ctx.fillRect((c + quiet) * cell, (r + quiet) * cell, cell, cell);
+
+    // gradien: satu linear-gradient di seluruh kanvas sebagai fillStyle
+    var paint = fg;
+    if (gradient && gradient !== 'off') {
+      var g = null;
+      if (gradient === 'v') g = ctx.createLinearGradient(0, 0, 0, px);
+      else if (gradient === 'h') g = ctx.createLinearGradient(0, 0, px, 0);
+      else g = ctx.createLinearGradient(0, 0, px, px);
+      if (g) {
+        g.addColorStop(0, fg);
+        g.addColorStop(1, gradientEnd(fg, bg));
+        paint = g;
       }
+    }
+    ctx.fillStyle = paint;
+
+    // gambar modul sesuai gaya titik.
+    // finder pattern (3 mata) SELALU kotak tajam — kalau ikut dibulatkan,
+    // cincin finder bocor dan decoder (jsQR/zbar) gagal membaca.
+    function inFinder(rr, cc) {
+      var f = function (v) { return v >= 0 && v <= 6; };
+      var b = function (v) { return v >= count - 7 && v <= count - 1; };
+      return (f(rr) && f(cc)) || (f(rr) && b(cc)) || (b(rr) && f(cc));
+    }
+    var r, c, x, y;
+    for (r = 0; r < count; r++) {
+      for (c = 0; c < count; c++) {
+        if (!qr.isDark(r, c)) continue;
+        x = (c + quiet) * cell;
+        y = (r + quiet) * cell;
+        if (inFinder(r, c)) {
+          ctx.fillRect(x, y, cell, cell);
+        } else if (style === 'dots') {
+          ctx.beginPath();
+          ctx.arc(x + cell / 2, y + cell / 2, cell * 0.48, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (style === 'rounded') {
+          roundRectPath(ctx, x + cell * 0.04, y + cell * 0.04, cell * 0.92, cell * 0.92, cell * 0.2);
+          ctx.fill();
+        } else {
+          ctx.fillRect(x, y, cell, cell);
+        }
+      }
+    }
+
+    // logo tengah: papan latar (bg) 1 modul keliling + gambar di dalamnya
+    if (logoImg) {
+      var lw = Math.floor(count * 0.22);
+      if (lw % 2) lw += 1;
+      var lo = Math.floor((count - lw) / 2);
+      var bx = (lo - 1 + quiet) * cell;
+      var bw = (lw + 2) * cell;
+      ctx.fillStyle = bg;
+      roundRectPath(ctx, bx, bx, bw, bw, bw * 0.18);
+      ctx.fill();
+      var iw = bw - cell;
+      var ratio = (logoImg.width && logoImg.height) ? logoImg.width / logoImg.height : 1;
+      var dw = ratio >= 1 ? iw : iw * ratio;
+      var dh = ratio >= 1 ? iw / ratio : iw;
+      ctx.save();
+      roundRectPath(ctx, bx + cell / 2, bx + cell / 2, iw, iw, iw * 0.14);
+      ctx.clip();
+      ctx.drawImage(logoImg, bx + cell / 2 + (iw - dw) / 2, bx + cell / 2 + (iw - dh) / 2, dw, dh);
+      ctx.restore();
     }
     return cv;
   }
@@ -198,12 +326,15 @@
   var current = null; // { canvas, data, type, label }
 
   function setPreview(canvas) {
+    // pertahankan resolusi NATIVE: resample nearest-neighbor ke 440px
+    // merusak modul dots/rounded saat discan balik dari layar.
+    // CSS (.preview-qr canvas) yang menangani tampilan visual.
     var hero = $('#heroCanvas');
-    hero.width = 440; hero.height = 440;
+    hero.width = canvas.width; hero.height = canvas.height;
     var ctx = hero.getContext('2d');
-    ctx.clearRect(0, 0, 440, 440);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(canvas, 0, 0, 440, 440);
+    ctx.drawImage(canvas, 0, 0);
     hero.classList.add('show');
     $('#heroEmpty').style.display = 'none';
     $('#heroDownload').disabled = false;
@@ -220,7 +351,10 @@
 
     var cv;
     try {
-      cv = makeQRCanvas(payload.data, size, fg, bg, ec);
+      cv = makeQRCanvas(payload.data, size, fg, bg, ec,
+        $('#in-dot').value || 'square',
+        $('#in-gradient').value || 'off',
+        logoImgEl);
     } catch (e) {
       $('#genHint').textContent = 'Data terlalu panjang untuk satu QR code. Coba perkecil isinya.';
       $('#genHint').className = 'hint err';
@@ -246,6 +380,36 @@
     $('#genHint').textContent = '';
     $('#genHint').className = 'hint';
     toast('Input direset');
+  });
+
+  /* ---------- logo tengah ---------- */
+  $('#btnLogoPick').addEventListener('click', function () { $('#in-logo').click(); });
+  $('#in-logo').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      logoDataUrl = String(rd.result);
+      var im = new Image();
+      im.onload = function () {
+        logoImgEl = im;
+        $('#btnLogoClear').hidden = false;
+        $('#btnLogoPick').textContent = 'Ganti logo…';
+        generate(true);
+        toast('Logo ditambahkan ke tengah QR');
+      };
+      im.onerror = function () { toast('Gagal memuat gambar logo'); };
+      im.src = logoDataUrl;
+    };
+    rd.readAsDataURL(f);
+    e.target.value = '';
+  });
+  $('#btnLogoClear').addEventListener('click', function () {
+    logoDataUrl = null; logoImgEl = null;
+    $('#btnLogoClear').hidden = true;
+    $('#btnLogoPick').textContent = 'Pilih gambar…';
+    generate(true);
+    toast('Logo dihapus');
   });
 
   /* ---------- download / share ---------- */
@@ -286,6 +450,29 @@
     }, 'image/png');
   }
   $('#heroDownload').addEventListener('click', saveCurrent);
+
+  /* ---------- share ---------- */
+  function shareCurrent() {
+    if (!current) { toast('Belum ada QR code'); return; }
+    var doFallback = function () {
+      // fallback: copy payload sebagai teks
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(current.data).then(function () { toast('Isi QR disalin ke clipboard'); },
+          function () { toast('Berbagi tidak didukung di sini'); });
+      } else { toast('Berbagi tidak didukung di sini'); }
+    };
+    if (navigator.share && navigator.canShare) {
+      current.canvas.toBlob(function (b) {
+        var f = new File([b], fileName(current.type, current.label), { type: 'image/png' });
+        var payload = { files: [f], title: 'QR Code — QRGen' };
+        if (navigator.canShare(payload)) {
+          navigator.share(payload).catch(function () { /* user batal */ });
+        } else { doFallback(); }
+      }, 'image/png');
+    } else { doFallback(); }
+  }
+  $('#heroShare').disabled = false;
+  $('#heroShare').addEventListener('click', shareCurrent);
 
   /* ============================================================
      SCANNER
@@ -541,7 +728,7 @@
     if (!canvas) return;
 
     // Absolute URL to the APK (works from qrgen.local and the public tunnel).
-    var apkUrl = new URL('download/QRGen-release-v1.2.1.apk', location.href).href;
+    var apkUrl = new URL('download/QRGen-release-v1.3.0.apk', location.href).href;
 
     try {
       var qr = qrcode(0, 'M');
