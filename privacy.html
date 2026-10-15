@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kebijakan Privasi — QRGen</title>
+<style>
+  :root { --green:#10B981; --dark:#0B1C16; --ink:#111827; --muted:#6B7280; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#F9FAFB; color:var(--ink);
+         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+         line-height:1.7; }
+  header { background:var(--dark); color:#fff; padding:28px 20px; }
+  header .brand { display:flex; align-items:center; gap:12px; max-width:760px; margin:0 auto; }
+  header .logo { width:40px; height:40px; border-radius:10px; background:var(--green);
+                 display:flex; align-items:center; justify-content:center;
+                 font-weight:700; font-size:15px; color:#fff; }
+  header h1 { margin:0; font-size:20px; font-weight:600; }
+  header p { margin:2px 0 0; font-size:13px; color:#A7F3D0; }
+  main { max-width:760px; margin:0 auto; padding:28px 20px 60px; }
+  h2 { font-size:17px; margin:28px 0 8px; }
+  h2:first-of-type { margin-top:0; }
+  .meta { font-size:13px; color:var(--muted); border-bottom:1px solid #E5E7EB; padding-bottom:16px; }
+  ul { padding-left:22px; }
+  li { margin:6px 0; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:14px; }
+  th, td { text-align:left; padding:9px 10px; border:1px solid #E5E7EB; vertical-align:top; }
+  th { background:#F3F4F6; font-weight:600; }
+  .box { background:#ECFDF5; border-left:4px solid var(--green); padding:14px 16px;
+         border-radius:6px; margin:16px 0; }
+  a { color:#059669; }
+  footer { max-width:760px; margin:0 auto; padding:0 20px 50px;
+           font-size:13px; color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">QR</div>
+    <div>
+      <h1>Kebijakan Privasi — QRGen</h1>
+      <p>QR Code Generator &amp; Scanner untuk Android</p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <p class="meta">
+    Berlaku sejak: 15 Oktober 2026 &nbsp;·&nbsp; Versi aplikasi: 1.3.0 &nbsp;·&nbsp;
+    Nama paket: <strong>com.oswaldvalois.qrgen</strong>
+  </p>
+
+  <div class="box">
+    <strong>Ringkasnya:</strong> QRGen tidak punya server. Aplikasi ini tidak mengumpulkan,
+    tidak mengirim, dan tidak menjual data kamu ke siapa pun. Semua yang kamu buat dan
+    scan tetap di perangkatmu sendiri.
+  </div>
+
+  <h2>1. Data yang tidak kami kumpulkan</h2>
+  <p>QRGen tidak memiliki backend, akun pengguna, maupun sistem analitik. Kami
+     <strong>tidak</strong> mengumpulkan:</p>
+  <ul>
+    <li>Nama, alamat email, nomor telepon, atau identitas lain</li>
+    <li>Lokasi (GPS maupun perkiraan)</li>
+    <li>Daftar kontak, foto, atau file di perangkatmu</li>
+    <li>Riwayat QR code yang kamu buat atau scan</li>
+    <li>Pengenal iklan (advertising ID) atau data pelacakan apa pun</li>
+  </ul>
+
+  <h2>2. Izin aplikasi dan alasannya</h2>
+  <table>
+    <tr><th>Izin</th><th>Dipakai untuk</th></tr>
+    <tr>
+      <td>Kamera</td>
+      <td>Memindai QR code secara langsung. Gambar kamera diproses di dalam
+          perangkat, di memori, dan tidak pernah dikirim ke mana pun. Kamera
+          hanya menyala saat kamu menekan tombol mulai.</td>
+    </tr>
+    <tr>
+      <td>Penyimpanan (Android 9 ke bawah)</td>
+      <td>Menyimpan gambar QR ke folder <code>Pictures/QRGen</code> saat kamu
+          menekan tombol Download.</td>
+    </tr>
+    <tr>
+      <td>Internet</td>
+      <td>Hanya dipakai versi web di browser. Aplikasi Android berjalan penuh
+          secara offline dan tidak memanggil server mana pun.</td>
+    </tr>
+  </table>
+  <p>Izin kamera bersifat opsional: kamu bisa memakai fitur "Upload Gambar QR"
+     tanpa memberikannya sama sekali.</p>
+
+  <h2>3. Data yang tersimpan di perangkatmu</h2>
+  <p>Beberapa hal disimpan secara lokal, dan hanya di perangkatmu:</p>
+  <ul>
+    <li><strong>Riwayat QR</strong> — disimpan di penyimpanan lokal aplikasi.
+        Kamu bisa menghapusnya kapan saja lewat tombol "Hapus Semua" di halaman
+        Riwayat, atau dengan menghapus data aplikasi dari pengaturan Android.</li>
+    <li><strong>Gambar QR hasil download</strong> — tersimpan di folder
+        <code>Pictures/QRGen</code> pada perangkatmu.</li>
+    <li><strong>Preferensi tampilan</strong> — pilihan tema gelap/terang.</li>
+  </ul>
+  <p>Menghapus aplikasi akan menghapus semua data lokal tersebut.</p>
+
+  <h2>4. Berbagi ke aplikasi lain</h2>
+  <p>Tombol "Bagikan QR" memakai mekanisme berbagi bawaan Android. Kamu sendiri
+     yang memilih aplikasi tujuan. QRGen tidak mengirim apa pun tanpa tindakan
+     darimu.</p>
+
+  <h2>5. Iklan dan pihak ketiga</h2>
+  <p>Aplikasi ini tidak menampilkan iklan dan tidak menyertakan SDK pihak ketiga
+     untuk iklan maupun analitik. Satu-satunya komponen pihak ketiga adalah
+     pustaka pembuat/pembaca QR code yang berjalan sepenuhnya di dalam perangkat.</p>
+
+  <h2>6. Anak-anak</h2>
+  <p>QRGen tidak mengumpulkan data apa pun dari siapa pun, termasuk anak-anak.
+     Aplikasi ini tidak memiliki fitur yang memerlukan data pribadi.</p>
+
+  <h2>7. Perubahan kebijakan ini</h2>
+  <p>Kalau kebijakan ini berubah, halaman ini akan diperbarui dan tanggal
+     berlakunya diubah. Perubahan besar akan dicatat di catatan rilis aplikasi.</p>
+
+  <h2>8. Hubungi kami</h2>
+  <p>Ada pertanyaan soal privasi? Kirim email ke
+     <a href="mailto:oswald.valois123@gmail.com">oswald.valois123@gmail.com</a>.</p>
+</main>
+
+<footer>
+  QRGen dikembangkan secara independen oleh Oswald Valois.
+</footer>
+</body>
+</html>
